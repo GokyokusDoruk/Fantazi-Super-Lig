@@ -68,9 +68,23 @@ describe("scorePlayer", () => {
     expect(scorePlayer({ ...base, position: "DEF", saves: 6 }, DEFAULT_RULES)).toBe(2);
   });
 
-  it("penalty committed -1, yellow -1, red -2, own goal -2", () => {
-    const s = { ...base, penaltiesCommitted: 1, yellowCards: 1, redCards: 1, ownGoals: 1 };
-    expect(scorePlayer(s, DEFAULT_RULES)).toBe(2 - 1 - 1 - 2 - 2);
+  it("penalty committed -1, yellow -1, own goal -2", () => {
+    const s = { ...base, penaltiesCommitted: 1, yellowCards: 1, ownGoals: 1 };
+    expect(scorePlayer(s, DEFAULT_RULES)).toBe(2 - 1 - 1 - 2);
+  });
+
+  it("straight red -2", () => {
+    expect(scorePlayer({ ...base, redCards: 1 }, DEFAULT_RULES)).toBe(2 - 2);
+  });
+
+  it("second yellow: 2 yellows + 1 red counts only the red (-2)", () => {
+    const s = { ...base, yellowCards: 2, redCards: 1 };
+    expect(scorePlayer(s, DEFAULT_RULES)).toBe(2 - 2);
+  });
+
+  it("a yellow and a straight red in one match counts only the red", () => {
+    const s = { ...base, yellowCards: 1, redCards: 1 };
+    expect(scorePlayer(s, DEFAULT_RULES)).toBe(2 - 2);
   });
 
   it("a custom rule set overrides defaults", () => {

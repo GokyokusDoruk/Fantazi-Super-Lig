@@ -47,6 +47,11 @@ describe("api-football map", () => {
     expect(toPlayerStats({ ...keeper, statistics: [] }, 0)).toBeNull();
   });
 
+  it("fantasy position overrides the position seen in the match", () => {
+    expect(toPlayerStats(keeper, 0, "DEF")?.position).toBe("DEF");
+    expect(toPlayerStats(keeper, 0)?.position).toBe("GK");
+  });
+
   it("a substitute is not a starter", () => {
     const s = keeper.statistics[0];
     const sub = { ...keeper, statistics: [{ ...s, games: { ...s.games, substitute: true } }] };

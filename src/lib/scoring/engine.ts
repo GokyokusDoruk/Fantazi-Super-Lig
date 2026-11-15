@@ -25,8 +25,13 @@ export function scorePlayer(s: PlayerStats, r: RuleSet): number {
   total += Math.floor(s.saves / r.savesStep) * pts(r.save, p);
   total += s.penaltiesSaved * pts(r.penaltySaved, p);
   total += s.penaltiesCommitted * pts(r.penaltyCommitted, p);
-  total += s.yellowCards * pts(r.yellowCard, p);
-  total += s.redCards * pts(r.redCard, p);
+  // İkinci sarıyla atılan oyuncu API'de "2 sarı + 1 kırmızı" görünür; sarılar
+  // ayrıca cezalandırılmaz, atılma tek kırmızı olarak sayılır.
+  if (s.redCards > 0) {
+    total += s.redCards * pts(r.redCard, p);
+  } else {
+    total += s.yellowCards * pts(r.yellowCard, p);
+  }
   total += s.ownGoals * pts(r.ownGoal, p);
   return total;
 }
