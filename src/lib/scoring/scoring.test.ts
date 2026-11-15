@@ -6,12 +6,13 @@ import type { PlayerStats } from "./types";
 const base: PlayerStats = {
   position: "MID",
   minutes: 90,
+  started: true,
   goals: 0,
   assists: 0,
-  goalsConceded: 1, // clean sheet puanı karışmasın diye 1 gol yemiş
+  teamGoalsConceded: 1, // clean sheet puanı karışmasın diye takım gol yemiş
   saves: 0,
   penaltiesSaved: 0,
-  penaltiesMissed: 0,
+  penaltiesCommitted: 0,
   yellowCards: 0,
   redCards: 0,
   ownGoals: 0,
@@ -22,43 +23,54 @@ describe("scorePlayer", () => {
     expect(scorePlayer({ ...base, minutes: 0 }, DEFAULT_RULES)).toBe(0);
   });
 
-  it("under 60 minutes gives 1 point, 60+ gives 2", () => {
+  it("starter gets 1, plus 1 for playing more than 60 minutes", () => {
     expect(scorePlayer({ ...base, minutes: 30 }, DEFAULT_RULES)).toBe(1);
-    expect(scorePlayer({ ...base, minutes: 60 }, DEFAULT_RULES)).toBe(2);
+    expect(scorePlayer({ ...base, minutes: 60 }, DEFAULT_RULES)).toBe(1);
+    expect(scorePlayer({ ...base, minutes: 61 }, DEFAULT_RULES)).toBe(2);
+    expect(scorePlayer({ ...base, minutes: 90 }, DEFAULT_RULES)).toBe(2);
   });
 
-  it("goal points depend on position", () => {
+  it("substitute gets 1 for coming on, plus 1 if he plays more than 60", () => {
+    expect(scorePlayer({ ...base, started: false, minutes: 20 }, DEFAULT_RULES)).toBe(1);
+    expect(scorePlayer({ ...base, started: false, minutes: 65 }, DEFAULT_RULES)).toBe(2);
+  });
+
+  it("goal points depend on position (GK 8, DEF 6, MID 5, FWD 4)", () => {
     const g = (position: PlayerStats["position"]) =>
       scorePlayer({ ...base, position, goals: 1 }, DEFAULT_RULES) - 2;
-    expect(g("GK")).toBe(6);
+    expect(g("GK")).toBe(8);
     expect(g("DEF")).toBe(6);
     expect(g("MID")).toBe(5);
     expect(g("FWD")).toBe(4);
   });
 
-  it("clean sheet needs 60+ minutes and zero conceded", () => {
-    const cs = { ...base, position: "DEF" as const, goalsConceded: 0 };
-    expect(scorePlayer(cs, DEFAULT_RULES)).toBe(2 + 4);
-    expect(scorePlayer({ ...cs, minutes: 59 }, DEFAULT_RULES)).toBe(1);
-    expect(scorePlayer({ ...cs, goalsConceded: 1 }, DEFAULT_RULES)).toBe(2);
+  it("assist is 3 for every position", () => {
+    for (const position of ["GK", "DEF", "MID", "FWD"] as const) {
+      expect(scorePlayer({ ...base, position, assists: 1 }, DEFAULT_RULES)).toBe(2 + 3);
+    }
   });
 
-  it("goalkeeper: conceded penalty applies per 2 goals, saves per 3", () => {
-    const gk = { ...base, position: "GK" as const, goalsConceded: 3, saves: 7 };
-    // 2 (60+) + floor(3/2) * -1 + floor(7/3) * 1
-    expect(scorePlayer(gk, DEFAULT_RULES)).toBe(2 - 1 + 2);
+  it("clean sheet: GK and DEF get 4, only with more than 60 minutes", () => {
+    const cs = { ...base, teamGoalsConceded: 0 };
+    expect(scorePlayer({ ...cs, position: "DEF" }, DEFAULT_RULES)).toBe(2 + 4);
+    expect(scorePlayer({ ...cs, position: "GK" }, DEFAULT_RULES)).toBe(2 + 4);
+    expect(scorePlayer({ ...cs, position: "MID" }, DEFAULT_RULES)).toBe(2);
+    expect(scorePlayer({ ...cs, position: "DEF", minutes: 60 }, DEFAULT_RULES)).toBe(1);
+    expect(scorePlayer({ ...base, position: "DEF" }, DEFAULT_RULES)).toBe(2);
   });
 
-  it("cards, own goals and penalties are applied", () => {
-    const s = {
-      ...base,
-      goalsConceded: 1,
-      yellowCards: 1,
-      redCards: 1,
-      ownGoals: 1,
-      penaltiesMissed: 1,
-    };
-    expect(scorePlayer(s, DEFAULT_RULES)).toBe(2 - 1 - 3 - 2 - 2);
+  it("goalkeeper: 1 point per 2 saves, 4 for a saved penalty", () => {
+    const gk = { ...base, position: "GK" as const, saves: 7, penaltiesSaved: 1 };
+    expect(scorePlayer(gk, DEFAULT_RULES)).toBe(2 + 3 + 4);
+  });
+
+  it("saves only count for goalkeepers", () => {
+    expect(scorePlayer({ ...base, position: "DEF", saves: 6 }, DEFAULT_RULES)).toBe(2);
+  });
+
+  it("penalty committed -1, yellow -1, red -2, own goal -2", () => {
+    const s = { ...base, penaltiesCommitted: 1, yellowCards: 1, redCards: 1, ownGoals: 1 };
+    expect(scorePlayer(s, DEFAULT_RULES)).toBe(2 - 1 - 1 - 2 - 2);
   });
 
   it("a custom rule set overrides defaults", () => {

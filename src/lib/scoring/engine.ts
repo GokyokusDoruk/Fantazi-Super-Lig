@@ -11,20 +11,20 @@ function pts(rule: RulePoints, position: Position): number {
   return rule[position] ?? rule.all ?? 0;
 }
 
-/** Tek oyuncunun tek maçtaki puanı. */
+/** Tek oyuncunun tek maçtaki puanı (bonus hariç). */
 export function scorePlayer(s: PlayerStats, r: RuleSet): number {
   if (s.minutes <= 0) return 0;
   const p = s.position;
-  const played60 = s.minutes >= 60;
+  const longPlay = s.minutes >= r.longPlayMinutes;
 
-  let total = pts(played60 ? r.minutes60Plus : r.minutesUnder60, p);
+  let total = pts(s.started ? r.started : r.subAppearance, p);
+  if (longPlay) total += pts(r.longPlay, p);
+  if (longPlay && s.teamGoalsConceded === 0) total += pts(r.cleanSheet, p);
   total += s.goals * pts(r.goal, p);
   total += s.assists * pts(r.assist, p);
-  if (played60 && s.goalsConceded === 0) total += pts(r.cleanSheet, p);
-  total += Math.floor(s.goalsConceded / r.goalsConcededStep) * pts(r.goalsConceded, p);
   total += Math.floor(s.saves / r.savesStep) * pts(r.save, p);
   total += s.penaltiesSaved * pts(r.penaltySaved, p);
-  total += s.penaltiesMissed * pts(r.penaltyMissed, p);
+  total += s.penaltiesCommitted * pts(r.penaltyCommitted, p);
   total += s.yellowCards * pts(r.yellowCard, p);
   total += s.redCards * pts(r.redCard, p);
   total += s.ownGoals * pts(r.ownGoal, p);
