@@ -32,13 +32,18 @@ export function mapPosition(code: string | null | undefined): Position | null {
  * API oyuncu kaydını motorun girdisine çevirir; pozisyonu bilinmiyorsa null.
  * `teamGoalsConceded` maç skorundan gelir (oyuncu alanı kaleci dışında 0 geliyor).
  * Kendi kalesine gol bu endpoint'te yok; `fixtures/events`'ten gelmeli (şimdilik 0).
+ *
+ * `fantasyPosition`: oyuncunun sabit fantazi mevkisi (players tablosundan).
+ * Verilmezse maçtaki mevki kullanılır, ama oyuncuların ~%23'ü maçtan maça
+ * mevki değiştirdiği için puanlamada her zaman fantazi mevkisi verilmeli.
  */
 export function toPlayerStats(
   entry: ApiPlayerEntry,
   teamGoalsConceded: number,
+  fantasyPosition?: Position,
 ): PlayerStats | null {
   const s = entry.statistics[0];
-  const position = mapPosition(s?.games.position);
+  const position = fantasyPosition ?? mapPosition(s?.games.position);
   if (!s || !position) return null;
   return {
     position,
