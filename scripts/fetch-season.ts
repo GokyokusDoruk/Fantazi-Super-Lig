@@ -22,13 +22,24 @@ mkdirSync(join(dir, "fixture-players"), { recursive: true });
 
 let remaining = Infinity;
 
-async function call(path: string): Promise<unknown> {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Ücretsiz planda dakika başına ~10 istek sınırı var: istekler arası bekle.
+const SPACING_MS = 6500;
+
+async function call(path: string, attempt = 1): Promise<unknown> {
+  await sleep(SPACING_MS);
   const res = await fetch(`${BASE}${path}`, { headers: { "x-apisports-key": key! } });
   const left = res.headers.get("x-ratelimit-requests-remaining");
   if (left !== null) remaining = Number(left);
   const json = (await res.json()) as { errors: unknown; response: unknown };
   const errs = json.errors;
   if (errs && (Array.isArray(errs) ? errs.length : Object.keys(errs).length)) {
+    if (JSON.stringify(errs).includes("rateLimit") && attempt < 3) {
+      console.log("dakika limiti, 65 sn bekleniyor...");
+      await sleep(65_000);
+      return call(path, attempt + 1);
+    }
     throw new Error(`API hatası (${path}): ${JSON.stringify(errs)}`);
   }
   return json.response;
