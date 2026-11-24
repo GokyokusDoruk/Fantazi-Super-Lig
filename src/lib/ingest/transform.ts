@@ -1,3 +1,4 @@
+import { bonusByRating } from "../scoring/bonus";
 import type { Position } from "../scoring/types";
 
 /** Transfer/kadro kilidi: haftanın ilk maçından kaç dakika önce. */
@@ -104,4 +105,38 @@ export function pickFantasyPosition(seen: Position[]): Position | null {
     if (count.get(seen[i]) === best) return seen[i];
   }
   return null;
+}
+
+export interface BonusStatRow {
+  fixture_api_id: number;
+  player_api_id: number;
+  minutes: number;
+  rating: number | null;
+}
+
+/**
+ * Her maçın en yüksek reytingli üç oyuncusuna bonus (3/2/1) dağıtır.
+ * Dönen dizi girişle aynı uzunlukta ve aynı sıradadır; bonus almayan 0 alır.
+ */
+export function bonusForStats<T extends BonusStatRow>(stats: T[]): number[] {
+  const byFixture = new Map<number, T[]>();
+  for (const s of stats) {
+    const list = byFixture.get(s.fixture_api_id);
+    if (list) list.push(s);
+    else byFixture.set(s.fixture_api_id, [s]);
+  }
+
+  const bonusPerFixture = new Map<number, Map<number, number>>();
+  for (const [fixture, rows] of byFixture) {
+    bonusPerFixture.set(
+      fixture,
+      bonusByRating(
+        rows.map((r) => ({ playerId: r.player_api_id, minutes: r.minutes, rating: r.rating })),
+      ),
+    );
+  }
+
+  return stats.map(
+    (s) => bonusPerFixture.get(s.fixture_api_id)?.get(s.player_api_id) ?? 0,
+  );
 }

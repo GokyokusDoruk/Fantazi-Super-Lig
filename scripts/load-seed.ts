@@ -30,6 +30,7 @@ interface Dataset {
     fixture_api_id: number;
     player_api_id: number;
     minutes: number;
+    started: boolean;
     goals: number;
     assists: number;
     teamGoalsConceded: number;
@@ -40,6 +41,8 @@ interface Dataset {
     redCards: number;
     ownGoals: number;
     rating: number | null;
+    points_before_bonus: number;
+    bonus_points: number;
   }>;
 }
 
@@ -128,6 +131,7 @@ async function main() {
       fixture_id: fixtureIds.get(s.fixture_api_id),
       player_id: playerIds.get(s.player_api_id),
       minutes: s.minutes,
+      started: s.started,
       goals: s.goals,
       assists: s.assists,
       goals_conceded: s.teamGoalsConceded,
@@ -138,6 +142,8 @@ async function main() {
       red_cards: s.redCards,
       own_goals: s.ownGoals,
       rating: s.rating,
+      points: s.points_before_bonus,
+      bonus_points: s.bonus_points,
     })),
     "fixture_id,player_id",
   );

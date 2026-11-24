@@ -8,12 +8,14 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mapPosition, toPlayerStats, type ApiPlayerEntry } from "../src/lib/api-football/map";
 import {
+  bonusForStats,
   buildFixtures,
   buildGameweeks,
   buildTeams,
   pickFantasyPosition,
   type ApiFixture,
   type ApiTeam,
+  type BonusStatRow,
 } from "../src/lib/ingest/transform";
 import { DEFAULT_RULES } from "../src/lib/scoring/default-rules";
 import { scorePlayer } from "../src/lib/scoring/engine";
@@ -75,7 +77,7 @@ const players = [...seen.entries()].map(([id, positions]) => ({
 const fantasyPos = new Map(players.map((p) => [p.api_id, p.position]));
 
 // 2. geçiş: maç istatistikleri, sabit mevkiyle puanlanmış.
-const stats: Array<Record<string, unknown>> = [];
+const stats: Array<BonusStatRow & Record<string, unknown>> = [];
 for (const f of withStats) {
   for (const t of perFixture.get(f.fixture.id)!) {
     const conceded = t.team.id === f.teams.home.id ? f.goals.away : f.goals.home;
@@ -93,6 +95,12 @@ for (const f of withStats) {
     }
   }
 }
+
+// Bonus maç bazlıdır, bu yüzden bütün satırlar kurulduktan sonra dağıtılır.
+const bonuses = bonusForStats(stats);
+bonuses.forEach((b, i) => {
+  stats[i].bonus_points = b;
+});
 
 const out = join("data", `dataset-${season}.json`);
 writeFileSync(out, JSON.stringify({ season, teams, gameweeks, fixtures, players, stats }));
