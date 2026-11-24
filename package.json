@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "fetch:season": "tsx --env-file=.env scripts/fetch-season.ts",
     "build:dataset": "tsx scripts/build-dataset.ts",
-    "load:seed": "tsx --env-file=.env scripts/load-seed.ts"
+    "load:seed": "tsx --env-file=.env scripts/load-seed.ts",
+    "check:queries": "tsx --env-file=.env scripts/check-queries.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

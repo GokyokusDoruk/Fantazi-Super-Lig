@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bonusForStats,
   buildFixtures,
   buildGameweeks,
   buildTeams,
@@ -90,5 +91,31 @@ describe("pickFantasyPosition", () => {
   });
   it("returns null for no matches", () => {
     expect(pickFantasyPosition([])).toBeNull();
+  });
+});
+
+describe("bonusForStats", () => {
+  const row = (fixture: number, player: number, minutes: number, rating: number | null) => ({
+    fixture_api_id: fixture,
+    player_api_id: player,
+    minutes,
+    rating,
+  });
+
+  it("gives 3/2/1 to the best three of each match, matches do not mix", () => {
+    const stats = [
+      row(1, 10, 90, 8.5),
+      row(1, 11, 90, 7.9),
+      row(1, 12, 90, 7.1),
+      row(1, 13, 90, 6.0),
+      row(2, 20, 90, 6.2),
+      row(2, 21, 90, 9.1),
+    ];
+    expect(bonusForStats(stats)).toEqual([3, 2, 1, 0, 2, 3]);
+  });
+
+  it("a player who did not play or has no rating gets no bonus", () => {
+    const stats = [row(1, 10, 0, 9.9), row(1, 11, 90, null), row(1, 12, 90, 7.0)];
+    expect(bonusForStats(stats)).toEqual([0, 0, 3]);
   });
 });

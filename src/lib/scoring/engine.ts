@@ -7,9 +7,12 @@ import type {
   SquadPlayerResult,
 } from "./types";
 
-function pts(rule: RulePoints, position: Position): number {
+/** Bir kuralın o mevkideki puanı: mevki anahtarı varsa o, yoksa `all`. */
+export function rulePoints(rule: RulePoints, position: Position): number {
   return rule[position] ?? rule.all ?? 0;
 }
+
+const pts = rulePoints;
 
 /** Tek oyuncunun tek maçtaki puanı (bonus hariç). */
 export function scorePlayer(s: PlayerStats, r: RuleSet): number {
