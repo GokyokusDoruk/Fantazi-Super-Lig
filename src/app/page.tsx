@@ -1,69 +1,141 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Notice, Row, Table, Td, Th } from "@/components/table";
+import { formatDayTime } from "@/lib/format";
+import { POSITION_LABEL, POSITION_SHORT } from "@/lib/labels";
+import {
+  getFixtures,
+  getGameweekPlayers,
+  getGameweeks,
+  getLastCoveredGameweek,
+} from "@/lib/queries/gameweeks";
+import { getPlayerTotals } from "@/lib/queries/players";
 
-export default function Home() {
+const SEASON_TOP = 10;
+const WEEK_TOP = 5;
+
+export default async function Home() {
+  const [week, players, weeks] = await Promise.all([
+    getLastCoveredGameweek(),
+    getPlayerTotals(),
+    getGameweeks(),
+  ]);
+  const covered = weeks.reduce((a, w) => a + w.covered, 0);
+  const total = weeks.reduce((a, w) => a + w.fixtures, 0);
+
+  const [fixtures, weekPlayers] =
+    week === null
+      ? [[], []]
+      : await Promise.all([getFixtures(week), getGameweekPlayers(week, WEEK_TOP)]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="space-y-10">
+      <section className="space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Fantazi <span className="text-accent">Süper Lig</span>
+        </h1>
+        <p className="max-w-prose text-sm text-muted">
+          Süper Lig oyuncularının fantazi puanları. Puanlar maç istatistiklerinden kendi
+          kurallarımızla hesaplanıyor: mevkiye göre gol puanı, clean sheet, kurtarış, kart
+          cezaları ve maç reytingine göre bonus. Şu an {total} maçlık 2024 sezonunun{" "}
+          {covered} maçı işlendi.
+        </p>
+      </section>
+
+      {week === null ? (
+        <Notice>Henüz oyuncu verisi olan bir hafta yok.</Notice>
+      ) : (
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-medium">{week}. hafta</h2>
+            <Link href={`/haftalar/${week}`} className="text-sm text-accent hover:underline">
+              Haftanın tamamı →
+            </Link>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <ul className="divide-y divide-line/60 rounded-lg border border-line text-sm">
+              {fixtures.map((f) => (
+                <li key={f.id} className="flex items-center gap-2 px-3 py-1.5">
+                  <span className="flex-1 truncate text-right">{f.homeName}</span>
+                  <span className="tabular w-12 shrink-0 text-center font-semibold">
+                    {f.homeGoals === null || f.awayGoals === null
+                      ? "–"
+                      : `${f.homeGoals}-${f.awayGoals}`}
+                  </span>
+                  <span className="flex-1 truncate">{f.awayName}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium uppercase tracking-wide text-muted">
+                Haftanın en iyileri
+              </h3>
+              <ul className="divide-y divide-line/60 rounded-lg border border-line text-sm">
+                {weekPlayers.map((p) => (
+                  <li key={p.playerId} className="flex items-baseline gap-2 px-3 py-1.5">
+                    <span className="truncate font-medium">{p.name}</span>
+                    <abbr
+                      title={POSITION_LABEL[p.position]}
+                      className="text-xs text-muted no-underline"
+                    >
+                      {POSITION_SHORT[p.position]}
+                    </abbr>
+                    <span className="tabular ml-auto font-semibold">{p.points + p.bonus}</span>
+                  </li>
+                ))}
+              </ul>
+              {fixtures[0] && (
+                <p className="text-xs text-muted">
+                  Hafta {formatDayTime(fixtures[0].kickoff)} itibarıyla başladı.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-medium">Sezonun en iyileri</h2>
+          <Link href="/oyuncular" className="text-sm text-accent hover:underline">
+            Bütün oyuncular →
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <Table
+          head={
+            <>
+              <Th>Oyuncu</Th>
+              <Th>Takım</Th>
+              <Th>Mevki</Th>
+              <Th numeric>Maç</Th>
+              <Th numeric>Puan</Th>
+            </>
+          }
+        >
+          {players.slice(0, SEASON_TOP).map((p) => (
+            <Row key={p.id}>
+              <Td>{p.name}</Td>
+              <Td muted>
+                <Link href={`/takimlar/${p.teamSlug}`} className="hover:text-foreground">
+                  {p.teamName}
+                </Link>
+              </Td>
+              <Td muted>
+                <abbr title={POSITION_LABEL[p.position]} className="no-underline">
+                  {POSITION_SHORT[p.position]}
+                </abbr>
+              </Td>
+              <Td numeric muted>
+                {p.matches}
+              </Td>
+              <Td numeric>
+                <strong className="font-semibold">{p.points}</strong>
+              </Td>
+            </Row>
+          ))}
+        </Table>
+      </section>
     </div>
   );
 }
